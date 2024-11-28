@@ -46,17 +46,21 @@ let notes = [
     })
 
     app.get('/api/notes/:id',(request,response) => {
-        const id = Number(request.params.id)
-        //console.log('id:',id);
-        const note = notes.find(n => n.id === id)
-        //console.log(note);
-        if(note) {
-            response.json(note)
-        }
-        else {
-            response.status(404).end()
-        }
+        Note.findById(request.params.id)
+            .then( note => {
+                if(note){
+                    response.json(note)
+                }
+                else{
+                    response.status(404).end()
+                }
+            })
+            .catch(error => {
+                console.log(error);
+                response.status(400).send({error: 'malformated id'})
+            })
     })
+
     app.delete('/api/notes/:id',(request,response) => {
         const id = Number(request.params.id)
         //console.log('Delete id:',id);
@@ -79,22 +83,16 @@ let notes = [
     })
 
     app.put('/api/notes/:id', (request, response) => {
-        const id = Number(request.params.id)
-        const { content, important } = request.body
- 
-        const noteIndex = notes.findIndex(n => n.id === id)
- 
-        if (noteIndex === -1) {
-        // Si la nota no existe, respondemos con un error 404
-        return response.status(404).json({ error: 'Note not found' })
+        const body = request.body
+        const note = {
+            content: body.content,
+            important: body.important
         }
-        const updatedNote = {
-            id: id,
-            content: content || notes[noteIndex].content,  // Si no se proporciona contenido, mantenemos el original
-            important: important !== undefined ? important : notes[noteIndex].important // Si no se proporciona, mantenemos el valor original
-        }
-        notes[noteIndex] = updatedNote
-        response.json(updatedNote)
+        Note.findByIdAndUpdate(request.params.id,note,{new:true})
+            .then(result => {
+                response.json(result)
+            })
+            .catch(error => next(error))
     })
 
     const PORT = process.env.PORT
