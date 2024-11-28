@@ -1,6 +1,8 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const app = express()
+const Note = require('./models/note')
 
 app.use(express.json()) //obtener datos que envia el usuario
 app.use(cors())
@@ -38,8 +40,11 @@ let notes = [
         response.send('<h1>API REST FROM NOTES</h1>')
     })
     app.get('/api/notes',(request,response) => {
-        response.json(notes)
+        Note.find({}).then(notes =>{
+            response.json(notes)
+            })
     })
+
     app.get('/api/notes/:id',(request,response) => {
         const id = Number(request.params.id)
         //console.log('id:',id);
@@ -59,13 +64,6 @@ let notes = [
         response.status(204).end()
     })
 
-    const generateId = () => {
-        const maxId = notes.length > 0
-            ? Math.max(...notes.map(n => n.id))
-            : 0
-        return maxId + 1
-    }
-
     app.post('/api/notes',(request,response) => { //agrega notas
         const body = request.body
         if (!body.content){
@@ -73,13 +71,11 @@ let notes = [
                 error: 'Content missing'
             })
         }
-        const note = {
-            id: generateId(),
+        const note = new Note( {
             content: body.content,
-            important: Boolean(body.important) || false
-        }
-        notes = notes.concat(note)
-        response.json(note)
+            important: body.important || false            
+        })
+        note.save().then(result => response.json(note))
     })
 
     app.put('/api/notes/:id', (request, response) => {
@@ -101,7 +97,7 @@ let notes = [
         response.json(updatedNote)
     })
 
-    const PORT = process.env.PORT || 3001
+    const PORT = process.env.PORT
     app.listen(PORT, () => {
         //console.log(`Server express running on port ${PORT}`);
     })
